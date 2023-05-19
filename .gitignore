@@ -28,3 +28,6 @@ npm-debug.log
 
 # Ignore the build directory
 /dist
+
+# Ignore the chatgpt prompt file
+prompt.md
