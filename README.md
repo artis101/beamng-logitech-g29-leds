@@ -41,7 +41,7 @@ Run the utility:
 node main.js
 ```
 
-Use Ctrl-C/CMD-c to exit the program.
+Use Ctrl-C to exit the program.
 
 That's it! Enjoy your immersive gaming experience. 🎮
 
