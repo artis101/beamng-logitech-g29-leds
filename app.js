@@ -2,15 +2,21 @@
 
 const dgram = require("dgram");
 const logitech = require("logitech-g29");
-const { parseRpmFromMessage, calculateRpmFraction, isValidRpmFraction } = require("./utils");
+const {
+  parseRpmFromMessage,
+  calculateRpmFraction,
+  isValidRpmFraction,
+} = require("./utils");
 const {
   logInfo,
   logError,
+  logWarning,
   setupUI,
   createProgressBars,
   updateGasPedalProgressBar,
   updateBrakePedalProgressBar,
   updateClutchPedalProgressBar,
+  logFeedback,
 } = require("./userInterface");
 
 let isConnectedToWheel = false;
@@ -21,6 +27,7 @@ function createAndBindSocket(port, address) {
   try {
     socket = dgram.createSocket("udp4");
     socket.bind(port, address);
+    logFeedback(`Listening on ${address}:${port}`);
   } catch (err) {
     logError("\n[ERROR] Cannot create UDP socket:\n", err);
     process.exit(1);
@@ -35,37 +42,51 @@ function connectToLogitechG29() {
         process.exit(1);
       }
       isConnectedToWheel = true;
+      logFeedback("\n[INFO] Connected to Logitech G29");
     });
   } catch (err) {
-    logError("\n[ERROR] Cannot find or open Logitech G29 on this system:\n", err);
+    logError(
+      "\n[ERROR] Cannot find or open Logitech G29 on this system:\n",
+      err
+    );
     process.exit(1);
+  }
+}
+
+function handleGasPedalValueCb(val) {
+  if (inTestMode) {
+    logitech.leds(val);
+    updateGasPedalProgressBar(val * 100);
+  }
+}
+
+function handleBrakePedalValueCb(val) {
+  if (inTestMode) {
+    updateBrakePedalProgressBar(val * 100);
+  }
+}
+
+function handleClutchPedalValueCb(val) {
+  if (inTestMode) {
+    updateClutchPedalProgressBar(val * 100);
   }
 }
 
 function handleTestMode() {
   createProgressBars();
 
-  logitech.on("pedals-gas", function (val) {
-    if (inTestMode) {
-      logitech.leds(val);
-      updateGasPedalProgressBar(val * 100);
-    }
-  });
+  logitech.on("pedals-gas", handleGasPedalValueCb);
 
-  logitech.on("pedals-brake", function (val) {
-    if (inTestMode) {
-      updateBrakePedalProgressBar(val * 100);
-    }
-  });
+  logitech.on("pedals-brake", handleBrakePedalValueCb);
 
-  logitech.on("pedals-clutch", function (val) {
-    if (inTestMode) {
-      updateClutchPedalProgressBar(val * 100);
-    }
-  });
+  logitech.on("pedals-clutch", handleClutchPedalValueCb);
+
+  logInfo("\n[INFO] Switching to test mode, press Ctrl+C to exit");
+  logFeedback("\n[INFO] Press the pedals to see the LEDs in action");
+  logInfo("\n[INFO] Waiting for UDP messages...");
 }
 
-function handleMessage(inTestMode, maxRpm) {
+function handleMessage(maxRpm) {
   let currentRpm;
   let isInitialMessage = true;
 
@@ -74,6 +95,11 @@ function handleMessage(inTestMode, maxRpm) {
     if (isInitialMessage) {
       inTestMode = false;
       isInitialMessage = false;
+      logInfo("\n[INFO] Received first UDP message, switching to game mode");
+      logFeedback(
+        "\n[INFO] The LEDs will now reflect the RPM, press Ctrl+C to exit"
+      );
+      logFeedback("\n[INFO] Enjoy!");
     }
 
     if (!inTestMode) {
@@ -82,7 +108,12 @@ function handleMessage(inTestMode, maxRpm) {
 
       if (isValidRpmFraction(rpmFraction)) {
         logitech.leds(rpmFraction);
-        logInfo(`\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(2)}`);
+        // TODO implement debug flag support
+        // logInfo(
+        //   `\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(
+        //     2
+        //   )}`
+        // );
       } else {
         // handle higher revs than maxRpm set in the config or by user
         // if the maxRpm is set too low, adjust it to the currentRpm
@@ -93,7 +124,9 @@ function handleMessage(inTestMode, maxRpm) {
           maxRpm = currentRpm;
           logitech.leds(1);
         } else {
-          logError(`\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`);
+          logError(
+            `\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`
+          );
         }
       }
     }
@@ -108,8 +141,6 @@ function handleMessage(inTestMode, maxRpm) {
 function cleanupAndExit() {
   if (isConnectedToWheel) {
     logitech.disconnect(() => {
-      console.log("kekw");
-
       logInfo("\n[INFO] Disconnected from Logitech G29");
       isConnectedToWheel = false;
     });
@@ -135,7 +166,7 @@ function runApp({ port, address, maxRpm }) {
 
   handleTestMode();
 
-  handleMessage(inTestMode, maxRpm);
+  handleMessage(maxRpm);
 }
 
 process.on("SIGINT", cleanupAndExit);
