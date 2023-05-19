@@ -1,0 +1,30 @@
+# .gitignore
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore logs
+logs
+*.log
+npm-debug.log*
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
+# Ignore dotenv environment files
+.env
+.env.test
+
+# Ignore the npm debug log, yarn error log
+error.log
+npm-debug.log
+
+# Ignore the build directory
+/dist
