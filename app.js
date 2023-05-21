@@ -137,7 +137,7 @@ function handleMessage(configuredMaxRpms) {
           maxRpm = Math.ceil(currentRpm / 1000) * 1000;
           logitech.leds(1);
         } else if (rpmFraction < 0) {
-          rpmFraction = 0;
+          logitech.leds(0);
         } else {
           logError(
             `\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`
