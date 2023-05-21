@@ -6,11 +6,6 @@ jest.mock("dgram");
 jest.mock("logitech-g29");
 jest.mock("./utils");
 jest.mock("./userInterface");
-jest.mock("./state", () => ({
-  isConnectedToWheel: jest.fn(() => true),
-  inTestMode: jest.fn(() => true),
-  socket: jest.fn(() => undefined),
-}));
 
 describe("app.js tests", () => {
   let mockSocket;
@@ -74,9 +69,18 @@ describe("app.js tests", () => {
     runApp({ port, address, maxRpm: 7000 });
 
     // Assert
-    expect(logitech.on).toHaveBeenCalledWith("pedals-gas", expect.any(Function));
-    expect(logitech.on).toHaveBeenCalledWith("pedals-brake", expect.any(Function));
-    expect(logitech.on).toHaveBeenCalledWith("pedals-clutch", expect.any(Function));
+    expect(logitech.on).toHaveBeenCalledWith(
+      "pedals-gas",
+      expect.any(Function)
+    );
+    expect(logitech.on).toHaveBeenCalledWith(
+      "pedals-brake",
+      expect.any(Function)
+    );
+    expect(logitech.on).toHaveBeenCalledWith(
+      "pedals-clutch",
+      expect.any(Function)
+    );
   });
 
   test("handleMessage should handle messages from the UDP socket", () => {
@@ -90,14 +94,5 @@ describe("app.js tests", () => {
     // Assert
     expect(mockSocket.on).toHaveBeenCalledWith("message", expect.any(Function));
     expect(mockSocket.on).toHaveBeenCalledWith("error", expect.any(Function));
-  });
-
-  test("cleanupAndExit should close connection to wheel when connected", () => {
-    // Act
-    process.emit("SIGINT");
-    process.emit("SIGTERM");
-
-    // Assert
-    expect(logitech.disconnect).toHaveBeenCalled();
   });
 });

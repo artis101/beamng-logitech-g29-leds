@@ -1,4 +1,3 @@
-const readline = require("readline");
 const chalk = require("chalk");
 const figlet = require("figlet");
 const cliProgress = require("cli-progress");
@@ -20,17 +19,9 @@ function logFeedback(message) {
 }
 
 function setupUI() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  rl.on("line", (input) => {
-    maxRpm = Number(input);
-    logInfo(`\n[INFO] The Max RPM is now ${maxRpm}`);
-  });
-
-  console.log(chalk.yellow(figlet.textSync("BeamNG + G29", { horizontalLayout: "full" })));
+  console.log(
+    chalk.yellow(figlet.textSync("BeamNG + G29", { horizontalLayout: "full" }))
+  );
 
   console.log(
     chalk.cyan(`

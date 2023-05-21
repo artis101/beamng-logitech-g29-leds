@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
 const dgram = require("dgram");
+const readline = require("readline");
 const logitech = require("logitech-g29");
 const {
   parseRpmFromMessage,
@@ -86,11 +87,22 @@ function handleTestMode() {
   logInfo("\n[INFO] Waiting for UDP messages...");
 }
 
-function handleMessage(maxRpm) {
+function handleMessage(configuredMaxRpms) {
   let currentRpm;
   let isInitialMessage = true;
+  let maxRpm = configuredMaxRpms;
 
-  socket.on("message", (msg, rinfo) => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  rl.on("line", (input) => {
+    maxRpm = Number(input);
+    logInfo(`\n[INFO] The Max RPM is now ${maxRpm}`);
+  });
+
+  socket.on("message", (msg) => {
     // If this is the first message, switch to game mode
     if (isInitialMessage) {
       inTestMode = false;
@@ -112,7 +124,7 @@ function handleMessage(maxRpm) {
         // logInfo(
         //   `\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(
         //     2
-        //   )}`
+        //   )} (Max RPM: ${maxRpm})`
         // );
       } else {
         // handle higher revs than maxRpm set in the config or by user
@@ -121,8 +133,11 @@ function handleMessage(maxRpm) {
           logWarning(
             `\n[WARN] Invalid RPM fraction: ${rpmFraction}. The Max RPM is set too low, adjusting to ${currentRpm}.`
           );
-          maxRpm = currentRpm;
+          // round up the maxrpm based on current rpms
+          maxRpm = Math.ceil(currentRpm / 1000) * 1000;
           logitech.leds(1);
+        } else if (rpmFraction < 0) {
+          rpmFraction = 0;
         } else {
           logError(
             `\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`
