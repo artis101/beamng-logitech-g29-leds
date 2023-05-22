@@ -123,6 +123,31 @@ function parseUDPMessage(msg, maxRpm) {
   }
 }
 
+function handleUserInput(input, currentMaxRpm, logInfo, logWarning, handleTestMode, cleanupAndExit) {
+  switch (input) {
+    case "exit":
+    case "quit":
+    case "q":
+      cleanupAndExit();
+      break;
+    case "test":
+      handleTestMode();
+      break;
+    default:
+      const numberInput = Number(input);
+
+      if (!isNaN(numberInput)) {
+        currentMaxRpm = numberInput;
+        logInfo(`\n[INFO] The Max RPM is now ${currentMaxRpm}`);
+      } else {
+        logWarning("\n[WARN] Invalid input, please enter a number or a command");
+      }
+      break;
+  }
+
+  return currentMaxRpm;
+}
+
 function handleGameMode(configuredMaxRpms) {
   let isInitialMessage = true;
   let currentMaxRpm = configuredMaxRpms;
@@ -132,10 +157,7 @@ function handleGameMode(configuredMaxRpms) {
     output: process.stdout,
   });
 
-  rl.on("line", (input) => {
-    currentMaxRpm = Number(input);
-    logInfo(`\n[INFO] The Max RPM is now ${currentMaxRpm}`);
-  });
+  rl.on("line", handleUserInput);
 
   socket.on("message", (msg) => {
     // If this is the first message, switch to game mode
@@ -209,4 +231,5 @@ process.on("SIGTERM", cleanupAndExit);
 
 module.exports = {
   runApp,
+  handleUserInput, // for tests
 };

@@ -1,6 +1,6 @@
 const dgram = require("dgram");
 const logitech = require("logitech-g29");
-const { runApp } = require("./app");
+const { runApp, handleUserInput } = require("./app");
 const { createMockMessage } = require("./testUtils");
 
 jest.mock("dgram");
@@ -141,5 +141,103 @@ describe("app.js tests", () => {
 
     // Assert
     expect(logitech.leds).toHaveBeenCalledWith(expect.any(Number)); // flashState (1 or 0)
+  });
+
+  describe("handleUserInput tests", () => {
+    test("should update max RPM when user inputs a new value", () => {
+      // Arrange
+      const mockLogInfo = jest.fn();
+      const mockLogWarning = jest.fn();
+      const mockHandleTestMode = jest.fn();
+      const mockCleanupAndExit = jest.fn();
+      const currentMaxRpm = 7000;
+      const newMaxRpm = 8000;
+
+      // Act
+      const updatedMaxRpm = handleUserInput(
+        newMaxRpm.toString(),
+        currentMaxRpm,
+        mockLogInfo,
+        mockLogWarning,
+        mockHandleTestMode,
+        mockCleanupAndExit
+      );
+
+      // Assert
+      expect(updatedMaxRpm).toBe(newMaxRpm);
+      expect(mockLogInfo).toHaveBeenCalledWith(`\n[INFO] The Max RPM is now ${newMaxRpm}`);
+    });
+
+    test("should handle invalid input and log a warning", () => {
+      // Arrange
+      const mockLogInfo = jest.fn();
+      const mockLogWarning = jest.fn();
+      const mockHandleTestMode = jest.fn();
+      const mockCleanupAndExit = jest.fn();
+      const currentMaxRpm = 7000;
+      const invalidInput = "invalid";
+
+      // Act
+      const updatedMaxRpm = handleUserInput(
+        invalidInput,
+        currentMaxRpm,
+        mockLogInfo,
+        mockLogWarning,
+        mockHandleTestMode,
+        mockCleanupAndExit
+      );
+
+      // Assert
+      expect(updatedMaxRpm).toBe(currentMaxRpm);
+      expect(mockLogWarning).toHaveBeenCalledWith("\n[WARN] Invalid input, please enter a number or a command");
+    });
+
+    test("should handle 'test' command and call handleTestMode", () => {
+      // Arrange
+      const mockLogInfo = jest.fn();
+      const mockLogWarning = jest.fn();
+      const mockHandleTestMode = jest.fn();
+      const mockCleanupAndExit = jest.fn();
+      const currentMaxRpm = 7000;
+      const testCommand = "test";
+
+      // Act
+      const updatedMaxRpm = handleUserInput(
+        testCommand,
+        currentMaxRpm,
+        mockLogInfo,
+        mockLogWarning,
+        mockHandleTestMode,
+        mockCleanupAndExit
+      );
+
+      // Assert
+      expect(updatedMaxRpm).toBe(currentMaxRpm);
+      expect(mockHandleTestMode).toHaveBeenCalled();
+    });
+
+    test("should handle 'exit' command and call cleanupAndExit", () => {
+      // Arrange
+      const mockLogInfo = jest.fn();
+      const mockLogWarning = jest.fn();
+      const mockHandleTestMode = jest.fn();
+      const mockCleanupAndExit = jest.fn();
+      const currentMaxRpm = 7000;
+      const exitCommand = "exit";
+
+      // Act
+      const updatedMaxRpm = handleUserInput(
+        exitCommand,
+        currentMaxRpm,
+        mockLogInfo,
+        mockLogWarning,
+        mockHandleTestMode,
+        mockCleanupAndExit
+      );
+
+      // Assert
+      expect(updatedMaxRpm).toBe(currentMaxRpm);
+      expect(mockCleanupAndExit).toHaveBeenCalled();
+    });
   });
 });
