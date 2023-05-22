@@ -1,5 +1,7 @@
 # 🏎️ Logitech G29 & BeamNG.drive Utility 🕹️
 
+![node.js test workflow](https://github.com/artis101/beamng-logitech-g29-leds/actions/workflows/node.js.yml/badge.svg)
+
 Hi there! 👋 This is a utility designed and developed to connect your Logitech G29 steering wheel's LEDs with the BeamNG.drive game by reading the car's RPM data in real-time. Pretty cool, right? 🚀
 
 ## 🎯 What does it do?
