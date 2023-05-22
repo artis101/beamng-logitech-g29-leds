@@ -3,7 +3,11 @@
 const dgram = require("dgram");
 const readline = require("readline");
 const logitech = require("logitech-g29");
-const { parseRpmFromMessage, calculateRpmFraction, isValidRpmFraction } = require("./utils");
+const {
+  parseRpmFromMessage,
+  calculateRpmFraction,
+  isValidRpmFraction,
+} = require("./utils");
 const {
   logInfo,
   logError,
@@ -43,7 +47,10 @@ function connectToLogitechG29() {
       logFeedback("\n[INFO] Connected to Logitech G29");
     });
   } catch (err) {
-    logError("\n[ERROR] Cannot find or open Logitech G29 on this system:\n", err);
+    logError(
+      "\n[ERROR] Cannot find or open Logitech G29 on this system:\n",
+      err
+    );
     process.exit(1);
   }
 }
@@ -88,7 +95,7 @@ function handleTestMode() {
 function parseUDPMessage(msg, maxRpm) {
   const currentRpm = parseRpmFromMessage(msg);
   const rpmFraction = calculateRpmFraction(currentRpm, maxRpm);
-  const flashInterval = 500; // time in milliseconds, twice per second
+  const flashInterval = 100; // time in milliseconds, five times per second
   const flashState = Date.now() % (flashInterval * 2) < flashInterval ? 1 : 0;
 
   if (isValidRpmFraction(rpmFraction)) {
@@ -101,7 +108,11 @@ function parseUDPMessage(msg, maxRpm) {
     }
 
     if (verboseOutput) {
-      logInfo(`\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(2)} (Max RPM: ${maxRpm})`);
+      logInfo(
+        `\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(
+          2
+        )} (Max RPM: ${maxRpm})`
+      );
     }
   } else {
     // handle higher revs than maxRpm set in the config or by user
@@ -116,7 +127,9 @@ function parseUDPMessage(msg, maxRpm) {
     } else if (rpmFraction <= 0) {
       logitech.leds(0);
     } else {
-      logError(`\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`);
+      logError(
+        `\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`
+      );
     }
   }
 }
@@ -141,7 +154,9 @@ function handleGameMode(configuredMaxRpms) {
       inTestMode = false;
       isInitialMessage = false;
       logInfo("\n[INFO] Received first UDP message, switching to game mode");
-      logFeedback("\n[INFO] The LEDs will now reflect the RPM, press Ctrl+C to exit");
+      logFeedback(
+        "\n[INFO] The LEDs will now reflect the RPM, press Ctrl+C to exit"
+      );
       logFeedback("\n[INFO] Enjoy!");
     }
 
