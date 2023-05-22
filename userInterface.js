@@ -1,6 +1,6 @@
 const chalk = require("chalk");
 const figlet = require("figlet");
-const cliProgress = require("cli-progress");
+// const cliProgress = require("cli-progress");
 
 function logInfo(message) {
   console.log(chalk.cyan(message));
@@ -19,9 +19,7 @@ function logFeedback(message) {
 }
 
 function setupUI() {
-  console.log(
-    chalk.yellow(figlet.textSync("BeamNG + G29", { horizontalLayout: "full" }))
-  );
+  console.log(chalk.yellow(figlet.textSync("BeamNG + G29", { horizontalLayout: "full" })));
 
   console.log(
     chalk.cyan(`

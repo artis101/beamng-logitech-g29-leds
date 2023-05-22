@@ -1,6 +1,6 @@
 {
   "name": "beamng-logitech-g29-leds",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A Node.js program that allows Logitech G29 steering wheel users to fully utilize the built-in revlights in conjunction with the BeamNG.drive game.",
   "main": "main.js",
   "scripts": {
