@@ -19,6 +19,10 @@ function handleCliParams() {
       describe: `The maximum RPM of the car you are using. Default: ${DEFAULT_MAX_RPM}`,
       type: "number",
     })
+    .option("verbose", {
+      describe: "Show verbose output",
+      type: "boolean",
+    })
     .version(pkg.version)
     .help()
     .alias("version", "v")
@@ -31,6 +35,7 @@ https://github.com/artis101/beamng-logitech-g29-leds
     port: argv.port || PORT,
     address: argv.address || ADDRESS,
     maxRpm: argv.maxRpm || DEFAULT_MAX_RPM,
+    verbose: argv.verbose,
   };
 }
 

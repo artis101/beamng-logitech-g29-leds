@@ -3,11 +3,7 @@
 const dgram = require("dgram");
 const readline = require("readline");
 const logitech = require("logitech-g29");
-const {
-  parseRpmFromMessage,
-  calculateRpmFraction,
-  isValidRpmFraction,
-} = require("./utils");
+const { parseRpmFromMessage, calculateRpmFraction, isValidRpmFraction } = require("./utils");
 const {
   logInfo,
   logError,
@@ -23,6 +19,7 @@ const {
 let isConnectedToWheel = false;
 let inTestMode = true;
 let socket;
+let verboseOutput = false;
 
 function createAndBindSocket(port, address) {
   try {
@@ -46,10 +43,7 @@ function connectToLogitechG29() {
       logFeedback("\n[INFO] Connected to Logitech G29");
     });
   } catch (err) {
-    logError(
-      "\n[ERROR] Cannot find or open Logitech G29 on this system:\n",
-      err
-    );
+    logError("\n[ERROR] Cannot find or open Logitech G29 on this system:\n", err);
     process.exit(1);
   }
 }
@@ -74,6 +68,10 @@ function handleClutchPedalValueCb(val) {
 }
 
 function handleTestMode() {
+  if (!inTestMode) {
+    inTestMode = true;
+  }
+
   createProgressBars();
 
   logitech.on("pedals-gas", handleGasPedalValueCb);
@@ -87,10 +85,45 @@ function handleTestMode() {
   logInfo("\n[INFO] Waiting for UDP messages...");
 }
 
-function handleMessage(configuredMaxRpms) {
-  let currentRpm;
+function parseUDPMessage(msg, maxRpm) {
+  const currentRpm = parseRpmFromMessage(msg);
+  const rpmFraction = calculateRpmFraction(currentRpm, maxRpm);
+  const flashInterval = 500; // time in milliseconds, twice per second
+  const flashState = Date.now() % (flashInterval * 2) < flashInterval ? 1 : 0;
+
+  if (isValidRpmFraction(rpmFraction)) {
+    if (rpmFraction >= 0.9 && rpmFraction < 1) {
+      logitech.leds(1);
+    } else if (rpmFraction >= 1) {
+      logitech.leds(flashState);
+    } else {
+      logitech.leds(rpmFraction);
+    }
+
+    if (verboseOutput) {
+      logInfo(`\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(2)} (Max RPM: ${maxRpm})`);
+    }
+  } else {
+    // handle higher revs than maxRpm set in the config or by user
+    // if the maxRpm is set too low, adjust it to the currentRpm
+    if (rpmFraction > 1) {
+      logWarning(
+        `\n[WARN] Invalid RPM fraction: ${rpmFraction}. The Max RPM is set too low, adjusting to ${currentRpm}.`
+      );
+      // round up the maxrpm based on current rpms
+      maxRpm = Math.ceil(currentRpm / 1000) * 1000;
+      logitech.leds(flashState);
+    } else if (rpmFraction <= 0) {
+      logitech.leds(0);
+    } else {
+      logError(`\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`);
+    }
+  }
+}
+
+function handleGameMode(configuredMaxRpms) {
   let isInitialMessage = true;
-  let maxRpm = configuredMaxRpms;
+  let currentMaxRpm = configuredMaxRpms;
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -98,8 +131,8 @@ function handleMessage(configuredMaxRpms) {
   });
 
   rl.on("line", (input) => {
-    maxRpm = Number(input);
-    logInfo(`\n[INFO] The Max RPM is now ${maxRpm}`);
+    currentMaxRpm = Number(input);
+    logInfo(`\n[INFO] The Max RPM is now ${currentMaxRpm}`);
   });
 
   socket.on("message", (msg) => {
@@ -108,42 +141,12 @@ function handleMessage(configuredMaxRpms) {
       inTestMode = false;
       isInitialMessage = false;
       logInfo("\n[INFO] Received first UDP message, switching to game mode");
-      logFeedback(
-        "\n[INFO] The LEDs will now reflect the RPM, press Ctrl+C to exit"
-      );
+      logFeedback("\n[INFO] The LEDs will now reflect the RPM, press Ctrl+C to exit");
       logFeedback("\n[INFO] Enjoy!");
     }
 
     if (!inTestMode) {
-      currentRpm = parseRpmFromMessage(msg);
-      const rpmFraction = calculateRpmFraction(currentRpm, maxRpm);
-
-      if (isValidRpmFraction(rpmFraction)) {
-        logitech.leds(rpmFraction);
-        // TODO implement debug flag support
-        // logInfo(
-        //   `\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(
-        //     2
-        //   )} (Max RPM: ${maxRpm})`
-        // );
-      } else {
-        // handle higher revs than maxRpm set in the config or by user
-        // if the maxRpm is set too low, adjust it to the currentRpm
-        if (rpmFraction > 1) {
-          logWarning(
-            `\n[WARN] Invalid RPM fraction: ${rpmFraction}. The Max RPM is set too low, adjusting to ${currentRpm}.`
-          );
-          // round up the maxrpm based on current rpms
-          maxRpm = Math.ceil(currentRpm / 1000) * 1000;
-          logitech.leds(1);
-        } else if (rpmFraction < 0) {
-          logitech.leds(0);
-        } else {
-          logError(
-            `\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`
-          );
-        }
-      }
+      parseUDPMessage(msg, currentMaxRpm);
     }
   });
 
@@ -172,7 +175,9 @@ function cleanupAndExit() {
   }
 }
 
-function runApp({ port, address, maxRpm }) {
+function runApp({ port, address, maxRpm, verbose }) {
+  verboseOutput = verbose; // ugly hack works for now
+
   setupUI();
 
   createAndBindSocket(port, address);
@@ -181,7 +186,7 @@ function runApp({ port, address, maxRpm }) {
 
   handleTestMode();
 
-  handleMessage(maxRpm);
+  handleGameMode(maxRpm);
 }
 
 process.on("SIGINT", cleanupAndExit);
