@@ -1,6 +1,7 @@
 const dgram = require("dgram");
 const logitech = require("logitech-g29");
 const { runApp } = require("./app");
+const { createMockMessage } = require("./testUtils");
 
 jest.mock("dgram");
 jest.mock("readline", () => ({
@@ -97,10 +98,7 @@ describe("app.js tests", () => {
     // Act
     runApp({ port, address, maxRpm: 7000 });
 
-    const rpm = 850;
-    const buffer = Buffer.alloc(4);
-    buffer.writeFloatLE(rpm, 0);
-    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    const mockMessage = createMockMessage(850);
     // Get the callback function passed to 'on' and invoke it with the mockMessage
     const callback = mockSocket.on.mock.calls[0][1];
     callback(mockMessage, 7000);
@@ -118,10 +116,7 @@ describe("app.js tests", () => {
     const address = "127.0.0.1";
     const maxRpm = 7000;
 
-    const rpm = 5250.0;
-    const buffer = Buffer.alloc(4);
-    buffer.writeFloatLE(rpm, 0);
-    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    const mockMessage = createMockMessage(5250.0);
 
     // Act
     runApp({ port, address, maxRpm });
@@ -139,10 +134,7 @@ describe("app.js tests", () => {
     const port = 4444;
     const address = "127.0.0.1";
 
-    const rpm = -5250.0;
-    const buffer = Buffer.alloc(4);
-    buffer.writeFloatLE(rpm, 0);
-    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    const mockMessage = createMockMessage(-5250.0);
 
     // Act
     runApp({ port, address, maxRpm: 7000 });
@@ -159,10 +151,7 @@ describe("app.js tests", () => {
     // Arrange
     const port = 4444;
     const address = "127.0.0.1";
-    const rpm = 6370.0; // 91% of 7000 RPM
-    const buffer = Buffer.alloc(4);
-    buffer.writeFloatLE(rpm, 0);
-    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    const mockMessage = createMockMessage(6370.0); // 91% of 7000 RPM
 
     // Act
     runApp({ port, address, maxRpm: 7000 });
@@ -179,10 +168,7 @@ describe("app.js tests", () => {
     // Arrange
     const port = 4444;
     const address = "127.0.0.1";
-    const rpm = 7070.0; // 101% of 7000 RPM
-    const buffer = Buffer.alloc(4);
-    buffer.writeFloatLE(rpm, 0);
-    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    const mockMessage = createMockMessage(7070.0); // 101% of 7000 RPM
 
     // Act
     runApp({ port, address, maxRpm: 7000 });
