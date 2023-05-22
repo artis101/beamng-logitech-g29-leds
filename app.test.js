@@ -3,13 +3,21 @@ const logitech = require("logitech-g29");
 const { runApp } = require("./app");
 
 jest.mock("dgram");
-jest.mock("logitech-g29");
-jest.mock("./utils");
+jest.mock("readline", () => ({
+  createInterface: jest.fn(() => ({
+    on: jest.fn(() => jest.fn()),
+  })),
+}));
+jest.mock("logitech-g29", () => ({
+  connect: jest.fn(),
+  on: jest.fn(),
+  leds: jest.fn(),
+  disconnect: jest.fn(),
+}));
 jest.mock("./userInterface");
 
 describe("app.js tests", () => {
   let mockSocket;
-  let mockLogitech;
 
   beforeEach(() => {
     mockSocket = {
@@ -19,19 +27,10 @@ describe("app.js tests", () => {
       _handle: {},
     };
 
-    mockLogitech = {
-      connect: jest.fn(),
-      on: jest.fn(),
-      leds: jest.fn(),
-      disconnect: jest.fn(),
-    };
-
     dgram.createSocket.mockReturnValue(mockSocket);
-
-    global.logitech = mockLogitech;
   });
 
-  afterEach(() => {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
@@ -69,18 +68,9 @@ describe("app.js tests", () => {
     runApp({ port, address, maxRpm: 7000 });
 
     // Assert
-    expect(logitech.on).toHaveBeenCalledWith(
-      "pedals-gas",
-      expect.any(Function)
-    );
-    expect(logitech.on).toHaveBeenCalledWith(
-      "pedals-brake",
-      expect.any(Function)
-    );
-    expect(logitech.on).toHaveBeenCalledWith(
-      "pedals-clutch",
-      expect.any(Function)
-    );
+    expect(logitech.on).toHaveBeenCalledWith("pedals-gas", expect.any(Function));
+    expect(logitech.on).toHaveBeenCalledWith("pedals-brake", expect.any(Function));
+    expect(logitech.on).toHaveBeenCalledWith("pedals-clutch", expect.any(Function));
   });
 
   test("handleMessage should handle messages from the UDP socket", () => {
@@ -94,5 +84,114 @@ describe("app.js tests", () => {
     // Assert
     expect(mockSocket.on).toHaveBeenCalledWith("message", expect.any(Function));
     expect(mockSocket.on).toHaveBeenCalledWith("error", expect.any(Function));
+  });
+
+  test("cleanupAndExit should disconnect from the Logitech G29 and close the UDP socket", () => {
+    // Arrange
+    const port = 4444;
+    const address = "127.0.0.1";
+
+    // this will force the app into thinking it's connected to the wheel
+    logitech.connect.mockImplementationOnce((cb) => cb(undefined)); // no error
+
+    // Act
+    runApp({ port, address, maxRpm: 7000 });
+
+    const rpm = 850;
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(rpm, 0);
+    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+    // Get the callback function passed to 'on' and invoke it with the mockMessage
+    const callback = mockSocket.on.mock.calls[0][1];
+    callback(mockMessage, 7000);
+
+    process.emit("SIGINT");
+
+    // Assert
+    expect(logitech.disconnect).toHaveBeenCalled();
+    expect(mockSocket.close).toHaveBeenCalled();
+  });
+
+  test("parseUDPMessage should handle valid RPM fractions", () => {
+    // Arrange
+    const port = 4444;
+    const address = "127.0.0.1";
+    const maxRpm = 7000;
+
+    const rpm = 5250.0;
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(rpm, 0);
+    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+
+    // Act
+    runApp({ port, address, maxRpm });
+
+    // Get the callback function passed to 'on' and invoke it with the mockMessage
+    const callback = mockSocket.on.mock.calls[0][1];
+    callback(mockMessage, maxRpm);
+
+    // Assert
+    expect(logitech.leds).toHaveBeenCalledWith(0.75);
+  });
+
+  test("parseUDPMessage should handle invalid RPM fractions", () => {
+    // Arrange
+    const port = 4444;
+    const address = "127.0.0.1";
+
+    const rpm = -5250.0;
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(rpm, 0);
+    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+
+    // Act
+    runApp({ port, address, maxRpm: 7000 });
+
+    // Get the callback function passed to 'on' and invoke it with the mockMessage
+    const callback = mockSocket.on.mock.calls[0][1];
+    callback(mockMessage, 7000);
+
+    // Assert
+    expect(logitech.leds).toHaveBeenCalledWith(expect.any(Number));
+  });
+
+  test("parseUDPMessage should handle RPM fractions >= 0.9 but < 1", () => {
+    // Arrange
+    const port = 4444;
+    const address = "127.0.0.1";
+    const rpm = 6370.0; // 91% of 7000 RPM
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(rpm, 0);
+    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+
+    // Act
+    runApp({ port, address, maxRpm: 7000 });
+
+    // Get the callback function passed to 'on' and invoke it with the mockMessage
+    const callback = mockSocket.on.mock.calls[0][1];
+    callback(mockMessage, 7000);
+
+    // Assert
+    expect(logitech.leds).toHaveBeenCalledWith(1);
+  });
+
+  test("parseUDPMessage should handle RPM fractions >= 1", () => {
+    // Arrange
+    const port = 4444;
+    const address = "127.0.0.1";
+    const rpm = 7070.0; // 101% of 7000 RPM
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(rpm, 0);
+    const mockMessage = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
+
+    // Act
+    runApp({ port, address, maxRpm: 7000 });
+
+    // Get the callback function passed to 'on' and invoke it with the mockMessage
+    const callback = mockSocket.on.mock.calls[0][1];
+    callback(mockMessage, 7000);
+
+    // Assert
+    expect(logitech.leds).toHaveBeenCalledWith(expect.any(Number)); // flashState (1 or 0)
   });
 });

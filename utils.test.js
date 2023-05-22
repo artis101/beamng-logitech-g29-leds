@@ -6,7 +6,8 @@ describe("utils.js tests", () => {
     const buffer = Buffer.alloc(4);
     buffer.writeFloatLE(rpm, 0);
     const msg = Buffer.concat([Buffer.alloc(16), buffer]); // add 16 leading zeros
-    expect(rpm).toBeCloseTo(rpm);
+    const parsedRpm = parseRpmFromMessage(msg);
+    expect(parsedRpm).toBeCloseTo(rpm);
   });
 
   test("calculateRpmFraction should correctly calculate RPM fraction", () => {
