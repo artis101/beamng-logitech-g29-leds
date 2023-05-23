@@ -14,6 +14,11 @@ function logError(...messages) {
   console.error(chalk.red(...messages));
 }
 
+function logCriticalError(...messages) {
+  logError(...messages);
+  process.exit(1);
+}
+
 function logFeedback(message) {
   console.log(chalk.green(message));
 }
@@ -66,6 +71,7 @@ module.exports = {
   logInfo,
   logWarning,
   logError,
+  logCriticalError,
   logFeedback,
   setupUI,
   createProgressBars,

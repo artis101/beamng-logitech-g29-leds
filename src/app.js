@@ -7,6 +7,7 @@ const { parseRpmFromMessage, calculateRpmFraction, isValidRpmFraction } = requir
 const {
   logInfo,
   logError,
+  logCriticalError,
   logWarning,
   setupUI,
   createProgressBars,
@@ -30,24 +31,23 @@ function createAndBindSocket(port, address) {
     socket.bind(port, address);
     logFeedback(`Listening on ${address}:${port}`);
   } catch (err) {
-    logError("\n[ERROR] Cannot create UDP socket:\n", err);
-    process.exit(1);
+    logCriticalError("\n[ERROR] Cannot create UDP socket:\n", err);
   }
 }
 
-function connectToLogitechG29() {
+function connectToLogitechG29(cb) {
   try {
     logitech.connect(function (err) {
       if (err) {
-        logError("Failed to connect to the steering wheel:", err);
-        process.exit(1);
+        logCriticalError("Failed to connect to the steering wheel:", err);
       }
-      isConnectedToWheel = true;
+
+      cb();
+
       logFeedback("\n[INFO] Connected to Logitech G29");
     });
   } catch (err) {
-    logError("\n[ERROR] Cannot find or open Logitech G29 on this system:\n", err);
-    process.exit(1);
+    logCriticalError("\n[ERROR] Cannot find or open Logitech G29 on this system:\n", err);
   }
 }
 
@@ -124,6 +124,9 @@ function parseUDPMessage(msg, maxRpm) {
 }
 
 function handleUserInput(input, currentMaxRpm, logInfo, logWarning, handleTestMode, cleanupAndExit) {
+  let newMaxRpm = currentMaxRpm;
+  const numberInput = Number(input);
+
   switch (input) {
     case "exit":
     case "quit":
@@ -134,18 +137,16 @@ function handleUserInput(input, currentMaxRpm, logInfo, logWarning, handleTestMo
       handleTestMode();
       break;
     default:
-      const numberInput = Number(input);
-
       if (!isNaN(numberInput)) {
-        currentMaxRpm = numberInput;
-        logInfo(`\n[INFO] The Max RPM is now ${currentMaxRpm}`);
+        newMaxRpm = numberInput;
+        logInfo(`\n[INFO] The Max RPM is now ${newMaxRpm}`);
       } else {
         logWarning("\n[WARN] Invalid input, please enter a number or a command");
       }
       break;
   }
 
-  return currentMaxRpm;
+  return newMaxRpm;
 }
 
 function handleGameMode(configuredMaxRpms) {
@@ -175,8 +176,7 @@ function handleGameMode(configuredMaxRpms) {
   });
 
   socket.on("error", (err) => {
-    logError("\n[ERROR] Problem with UDP socket:", err);
-    process.exit(1);
+    logCriticalError("\n[ERROR] Problem with UDP socket:", err);
   });
 }
 
@@ -189,12 +189,10 @@ function cleanupAndExit() {
   }
 
   if (!socket._handle) {
-    logInfo("[INFO] UDP socket closed");
-    process.exit();
+    logCriticalError("[INFO] UDP socket closed");
   } else {
     socket.close(() => {
-      logInfo("[INFO] UDP socket closed");
-      process.exit();
+      logCriticalError("[INFO] UDP socket closed");
     });
   }
 }
@@ -219,7 +217,9 @@ function runApp({
 
   createAndBindSocket(port, address);
 
-  connectToLogitechG29();
+  connectToLogitechG29(() => {
+    isConnectedToWheel = true;
+  });
 
   handleTestMode();
 
