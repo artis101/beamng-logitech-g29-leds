@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Logitech G29 LEDs</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 1rem;
+      background-color: #333;
+      color: #fff;
+      width: 100%;
+      text-align: center;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+    }
+
+    .button {
+      margin: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #555;
+    }
+
+    .button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 1rem;
+      background-color: #ddd;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      background-color: #333;
+      border-radius: 0.5rem;
+      transition: width 0.2s ease-in-out;
+    }
+
+    .status-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      padding: 10px 0 0;
+      background-color: #f5f5f5;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .status-label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .status-value {
+      color: #555;
+    }
+
+    #help-text {
+      background-color: #f5f5f5;
+      padding: 20px;
+      font-size: 14px;
+      color: #999;
+      flex-grow: 1;
+    }
+
+    #help-text h2 {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    #help-text h2:last-child {
+      margin-bottom: 0;
+    }
+
+    #help-text p {
+      margin-bottom: 10px;
+      margin-top: 5px;
+    }
+
+    #help-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    #help-text span {
+      font-weight: bold;
+    }
+
+    #help-text .qna {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+
+    #help-text .qna:last-child {
+      margin-bottom: 0;
+    }
+
+    #help-text .qna .question {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    #help-text .qna .question:last-child {
+      margin-bottom: 0;
+    }
+
+    #help-text .qna .answer {
+      margin-left: 20px;
+    }
+
+    #game-status-items.disabled {
+      cursor: not-allowed;
+      color: #999;
+    }
+
+    #game-status-items.disabled .status-value {
+      color: #999;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <h1>Logitech G29 LED's</h1>
+    <div class="container">
+      <div class="status-container">
+        <div class="status-item">
+          <span class="status-label">Wheel status:</span>
+          <span id="wheel-status" class="status-value">Not connected</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">UDP connection:</span>
+          <span id="udp-status" class="status-value">Not connected</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Data from game received:</span>
+          <span id="packet-status" class="status-value">No</span>
+        </div>
+        <div id="game-status-items" class="disabled">
+          <div class="status-item">
+            <span class="status-label">Current RPM:</span>
+            <span id="rpm-status" class="status-value"></span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Max RPM:</span>
+            <span id="max-rpm-status" class="status-value"></span>
+          </div>
+        </div>
+      </div>
+      <button id="test-mode-button" class="button" disabled>Waiting for connection...</button>
+      <div id="help-text" class="qna">
+        <div class="qna">
+          <div class="question">What's going on?</div>
+          <div class="answer">
+            <p id="wheel-status-vocal">
+              The app is now waiting to connect to the Logitech G29 wheel...
+            </p>
+          </div>
+        </div>
+        <div class="qna">
+          <div class="question">What is the UDP connection status?</div>
+          <div class="answer">
+            <p>
+              <span id="udp-status-vocal">
+                The app is now waiting to connect to the game via UDP on
+              </span>
+              <span id="udp-address"></span>:<span id="udp-port"></span>
+            </p>
+          </div>
+        </div>
+        <div class="qna">
+          <div class="question">Is data from the game being received?</div>
+          <div class="answer">
+            <p id="packet-status-vocal">No</p>
+          </div>
+        </div>
+        <div class="qna">
+          <div class="question">What is the current mode?</div>
+          <div class="answer">
+            <p id="mode-status-vocal">Waiting for connection...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./renderer.js"></script>
+</body>
+
+</html>

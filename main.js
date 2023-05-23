@@ -1,8 +1,8 @@
 const yargs = require("yargs");
 const { hideBin } = require("yargs/helpers");
 const pkg = require("./package.json");
-const { runApp } = require("./app");
-const { PORT, ADDRESS, DEFAULT_MAX_RPM, DEFAULT_FLASH_INTERVAL, DEFAULT_BLINK_THRESHOLD } = require("./config");
+const { runApp } = require("./src/app");
+const { PORT, ADDRESS, DEFAULT_MAX_RPM, DEFAULT_FLASH_INTERVAL, DEFAULT_BLINK_THRESHOLD } = require("./src/config");
 
 function handleCliParams() {
   const argv = yargs(hideBin(process.argv))
