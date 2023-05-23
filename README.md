@@ -6,6 +6,10 @@ Hi there! 👋 This is a utility designed and developed to connect your Logitech
 
 ## 🎯 What does it do?
 
+### TL;DR here's a video of it in action
+
+![GIF showing the utility in action](https://raw.githubusercontent.com/artis101/beamng-logitech-g29-leds/main/beamng-logitech-g29-leds.gif)
+
 This utility makes your gaming experience more immersive by syncing your Logitech G29's LED indicators with your in-game vehicle's RPM data. As you rev up your car in the game, the LED indicators on your steering wheel will react accordingly.
 
 Before BeamNG.drive is connected, the utility is in the test mode where the LEDs respond to the gas pedal.
