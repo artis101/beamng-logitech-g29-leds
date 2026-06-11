@@ -23,6 +23,12 @@ let socket;
 let verboseOutput = false;
 let flashInterval = DEFAULT_FLASH_INTERVAL;
 let blinkThreshold = DEFAULT_BLINK_THRESHOLD;
+let blinkState = 0;
+
+let ledMode = "off"; // off | normal | shift
+
+let currentRpm = 0
+let rpmFraction = 0
 
 function createAndBindSocket(port, address) {
   try {
@@ -37,7 +43,7 @@ function createAndBindSocket(port, address) {
 
 function connectToLogitechG29() {
   try {
-    logitech.connect(function (err) {
+    logitech.connect({ autocenter: false },function (err) {
       if (err) {
         logError("Failed to connect to the steering wheel:", err);
         process.exit(1);
@@ -89,37 +95,17 @@ function handleTestMode() {
 }
 
 function parseUDPMessage(msg, maxRpm) {
-  const currentRpm = parseRpmFromMessage(msg);
-  const rpmFraction = calculateRpmFraction(currentRpm, maxRpm);
-  const flashState = Date.now() % (flashInterval * 2) < flashInterval ? 1 : 0;
+  currentRpm = parseRpmFromMessage(msg);
+  rpmFraction = calculateRpmFraction(currentRpm, maxRpm);
 
-  if (isValidRpmFraction(rpmFraction)) {
-    if (rpmFraction >= blinkThreshold && rpmFraction < 1) {
-      logitech.leds(1);
-    } else if (rpmFraction >= 1) {
-      logitech.leds(flashState);
-    } else {
-      logitech.leds(rpmFraction);
-    }
+  // dont let the parseudpmessage access the leds it has the ability to overwrite the blink
 
-    if (verboseOutput) {
-      logInfo(`\n[INFO] Current RPM: ${currentRpm}, RPM Fraction: ${rpmFraction.toFixed(2)} (Max RPM: ${maxRpm})`);
-    }
+  if (rpmFraction <= 0) {
+    ledMode = "off";
+  } else if (rpmFraction >= blinkThreshold) {
+    ledMode = "shift";
   } else {
-    // handle higher revs than maxRpm set in the config or by user
-    // if the maxRpm is set too low, adjust it to the currentRpm
-    if (rpmFraction > 1) {
-      logWarning(
-        `\n[WARN] Invalid RPM fraction: ${rpmFraction}. The Max RPM is set too low, adjusting to ${currentRpm}.`
-      );
-      // round up the maxrpm based on current rpms
-      maxRpm = Math.ceil(currentRpm / 1000) * 1000;
-      logitech.leds(flashState);
-    } else if (rpmFraction <= 0) {
-      logitech.leds(0);
-    } else {
-      logError(`\n[ERROR] Invalid RPM fraction: ${rpmFraction}. RPM fractions should be between 0 and 1.`);
-    }
+    ledMode = "normal";
   }
 }
 
@@ -224,6 +210,28 @@ function runApp({
   handleTestMode();
 
   handleGameMode(maxRpm);
+
+  setInterval(() => {
+    if (inTestMode) return
+    let safefraction = Math.max(0,Math.min(rpmFraction,1))
+  switch (ledMode) {
+    case "off":
+      logitech.leds(0);
+      break;
+
+    case "normal":
+      logitech.leds(safefraction); // optional scaling later
+      break;
+
+    case "shift":
+      logitech.leds(blinkState);
+      break;
+  }
+}, 1000/30);
+
+setInterval(() => {
+  blinkState = blinkState ? 0 : 1;
+}, flashInterval);
 }
 
 process.on("SIGINT", cleanupAndExit);
