@@ -43,7 +43,7 @@ function createAndBindSocket(port, address) {
 
 function connectToLogitechG29() {
   try {
-    logitech.connect(function (err) {
+    logitech.connect({ autocenter: false },function (err) {
       if (err) {
         logError("Failed to connect to the steering wheel:", err);
         process.exit(1);
@@ -227,7 +227,7 @@ function runApp({
       logitech.leds(blinkState);
       break;
   }
-}, 1000/5);
+}, 1000/30);
 
 setInterval(() => {
   blinkState = blinkState ? 0 : 1;
